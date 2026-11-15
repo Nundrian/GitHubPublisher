@@ -1,0 +1,12 @@
+﻿# Local state, dependencies and credentials
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+.env
+.env.*
+!.env.example
+publisher.json
+api-token.txt
+state/
+plans/

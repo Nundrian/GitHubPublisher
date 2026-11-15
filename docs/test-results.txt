@@ -1,0 +1,147 @@
+### pytest (Python 3.13.18, git 2.43.0, gitleaks 8.30.0) — 2026-11-15T16:26:27Z
+tests/test_config.py::test_valid PASSED                                  [  1%]
+tests/test_config.py::test_invalid[over0-loopback] PASSED                [  3%]
+tests/test_config.py::test_invalid[over1-protected] PASSED               [  5%]
+tests/test_config.py::test_invalid[over2-another] PASSED                 [  6%]
+tests/test_config.py::test_invalid[over3-alias] PASSED                   [  8%]
+tests/test_config.py::test_invalid[over4-absolute] PASSED                [ 10%]
+tests/test_config.py::test_invalid[over5-repo] PASSED                    [ 12%]
+tests/test_config.py::test_invalid[over6-owner] PASSED                   [ 13%]
+tests/test_config.py::test_invalid[over7-sha256] PASSED                  [ 15%]
+tests/test_prepare.py::test_prepare_is_read_only_and_never_writes_github PASSED [ 17%]
+tests/test_prepare.py::test_selective_exclusions_and_includes PASSED     [ 18%]
+tests/test_prepare.py::test_required_path_missing_blocks PASSED          [ 20%]
+tests/test_prepare.py::test_excluded_source_is_reported PASSED           [ 22%]
+tests/test_prepare.py::test_secrets_block_and_never_leak[github-token] PASSED [ 24%]
+tests/test_prepare.py::test_secrets_block_and_never_leak[aws-key-unknown-ext] PASSED [ 25%]
+tests/test_prepare.py::test_secrets_block_and_never_leak[private-key-in-binary] PASSED [ 27%]
+tests/test_prepare.py::test_secrets_block_and_never_leak[signing-password] PASSED [ 29%]
+tests/test_prepare.py::test_gitleaks_runs_and_project_config_cannot_disable_it PASSED [ 31%]
+tests/test_prepare.py::test_gitleaks_missing_blocks_when_required PASSED [ 32%]
+tests/test_prepare.py::test_location_traces_block PASSED                 [ 34%]
+tests/test_prepare.py::test_reviewed_hash_pinned_exception PASSED        [ 36%]
+tests/test_prepare.py::test_symlink_inside_tree_blocks_but_not_in_excluded_dir PASSED [ 37%]
+tests/test_prepare.py::test_root_symlink_and_unknown_alias_and_bad_plan_ids PASSED [ 39%]
+tests/test_prepare.py::test_windows_reserved_and_case_collision PASSED   [ 41%]
+tests/test_prepare.py::test_oversized_file_blocks PASSED                 [ 43%]
+tests/test_prepare.py::test_prepare_is_idempotent PASSED                 [ 44%]
+tests/test_prepare.py::test_hooks_and_filters_in_source_never_execute PASSED [ 46%]
+tests/test_prepare.py::test_workflow_scope_required PASSED               [ 48%]
+tests/test_prepare.py::test_false_positive_shapes_do_not_block PASSED    [ 50%]
+tests/test_prepare.py::test_suggest_reviewed_and_stale_tmp_cleanup PASSED [ 51%]
+tests/test_publish.py::test_end_to_end_create_publish_verify PASSED      [ 53%]
+tests/test_publish.py::test_approval_must_match_plan_and_is_single_use PASSED [ 55%]
+tests/test_publish.py::test_approval_cannot_be_reused_for_another_plan PASSED [ 56%]
+tests/test_publish.py::test_plan_and_snapshot_tampering_detected PASSED  [ 58%]
+tests/test_publish.py::test_tamper_between_challenge_and_publish PASSED  [ 60%]
+tests/test_publish.py::test_source_change_after_prepare_publishes_only_reviewed_bytes PASSED [ 62%]
+tests/test_publish.py::test_wrong_account PASSED                         [ 63%]
+tests/test_publish.py::test_existing_repo_not_ours_is_never_overwritten PASSED [ 65%]
+tests/test_publish.py::test_repo_created_by_someone_between_prepare_and_publish PASSED [ 67%]
+tests/test_publish.py::test_repeat_calls_are_idempotent PASSED           [ 68%]
+tests/test_publish.py::test_interrupted_push_is_resumable_without_duplicate PASSED [ 70%]
+tests/test_publish.py::test_create_response_lost_adopts_only_empty_private_repo PASSED [ 72%]
+tests/test_publish.py::test_repo_not_private_after_create_halts_before_push PASSED [ 74%]
+tests/test_publish.py::test_auth_failure_and_network_outage PASSED       [ 75%]
+tests/test_publish.py::test_verification_detects_remote_divergence PASSED [ 77%]
+tests/test_publish.py::test_update_fast_forward_with_diff PASSED         [ 79%]
+tests/test_publish.py::test_busy_lock PASSED                             [ 81%]
+tests/test_tool_http.py::test_http_auth_and_origin PASSED                [ 82%]
+tests/test_tool_http.py::test_tool_publish_fails_closed_unless_confirmed[cancel] PASSED [ 84%]
+tests/test_tool_http.py::test_tool_publish_fails_closed_unless_confirmed[disconnected] PASSED [ 86%]
+tests/test_tool_http.py::test_tool_publish_fails_closed_unless_confirmed[timed-out] PASSED [ 87%]
+tests/test_tool_http.py::test_tool_publish_fails_closed_unless_confirmed[string-yes] PASSED [ 89%]
+tests/test_tool_http.py::test_tool_publish_fails_closed_unless_confirmed[int-1] PASSED [ 91%]
+tests/test_tool_http.py::test_tool_publish_fails_closed_unless_confirmed[none] PASSED [ 93%]
+tests/test_tool_http.py::test_tool_publish_timeout_is_no PASSED          [ 94%]
+tests/test_tool_http.py::test_tool_refuses_without_event_call_and_for_non_admin PASSED [ 96%]
+tests/test_tool_http.py::test_tool_full_flow_confirmed PASSED            [ 98%]
+tests/test_tool_http.py::test_unreachable_service PASSED                 [100%]
+============================= 58 passed in 46.43s ==============================
+
+### pytest under the Open WebUI 0.12.5 venv (Python 3.12)
+58 passed in 49.82s
+
+### Open WebUI 0.12.5 package compatibility (tests/owui_compat_check.py, pip open-webui==0.12.5)
+{
+ "open_webui_version": "0.12.5",
+ "frontmatter": {
+  "title": "GitHub Publisher",
+  "author": "Nundrian (generated with Claude)",
+  "description": "Prepare, review, publish (with real browser confirmation) and verify allowlisted local projects to private GitHub repositories via the loopback GitHub Publisher service.",
+  "required_open_webui_version": "0.12.5",
+  "version": "1.0.0",
+  "licence": "MIT"
+ },
+ "functions": [
+  "prepare_publish",
+  "publish_reviewed",
+  "publisher_status",
+  "review_publish",
+  "verify_publish"
+ ],
+ "prepare_publish": {
+  "params": [
+   "project"
+  ],
+  "description": "Read-only for GitHub and for the source folder. Scan one project, stage an immutable snaps"
+ },
+ "publish_reviewed": {
+  "params": [
+   "plan_id"
+  ],
+  "description": "WRITE. Ask the human (browser dialog) to approve publishing this exact reviewed plan to it"
+ },
+ "publisher_status": {
+  "params": [],
+  "description": "Read-only. List publishable project aliases, their GitHub destination, last published comm"
+ },
+ "review_publish": {
+  "params": [
+   "plan_id"
+  ],
+  "description": "Read-only. Detailed review of a prepared plan: destination, totals, blocking items, warnin"
+ },
+ "verify_publish": {
+  "params": [
+   "project"
+  ],
+  "description": "Read-only. Independently check the GitHub repository (privacy, branch commit, full file tr"
+ },
+ "publish_without_service": {
+  "error": "not_configured",
+  "message": "admin must set the service_token valve"
+ }
+}
+OPEN WEBUI 0.12.5 COMPATIBILITY: OK
+
+### REAL Open WebUI 0.12.5 server integration (tests/integration/run_owui_integration.py)
+Real: Open WebUI 0.12.5 server, tool loader, native function calling, valves, socket.io __event_call__.
+Simulated: LLM (fake OpenAI endpoint), browser (python-socketio client answering the dialog), GitHub (fake gh).
+{
+ "owui_user_role": "admin",
+ "tool_specs": [
+  "prepare_publish",
+  "publish_reviewed",
+  "publisher_status",
+  "review_publish",
+  "verify_publish"
+ ],
+ "prepare_ran": true,
+ "plan_id": "demo-051c6782e152",
+ "cancel_dialog_shown": true,
+ "cancel_published": false,
+ "cancel_remote_exists": false,
+ "smuggled_args_dialog_still_shown": true,
+ "smuggled_published": false,
+ "confirm_published": true,
+ "publication_state": "verified",
+ "remote_private": true,
+ "dialog_has_destination": true,
+ "dialog_has_snapshot_hash": true
+}
+REAL OPEN WEBUI 0.12.5 INTEGRATION: PASS
+
+Also observed in the first integration run (test client used the wrong socket id): Open WebUI logged
+"Event caller: session ... not owned by requesting user or disconnected", __event_call__ returned
+{'error': 'Client session disconnected.'}, and the Tool returned not_approved - nothing was published.

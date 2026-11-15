@@ -1,0 +1,166 @@
+"""Secret and privacy review of the STAGED bytes.
+
+Two independent layers:
+  * built-in rules over every staged file (any extension, binary included, up to
+    `scan_bytes`; anything larger than `max_file_bytes` is blocked outright),
+  * Gitleaks (MIT, https://github.com/gitleaks/gitleaks) run with an explicit
+    config so a project-supplied .gitleaks.toml / .gitleaksignore / inline
+    `gitleaks:allow` can never weaken the scan.
+
+Findings carry path, rule id and line number only. Matched values are never
+stored, logged or returned.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import tempfile
+from dataclasses import dataclass, asdict
+
+from .procs import ProcError, run
+
+BLOCK = "block"
+WARN = "warn"
+
+_SECRET_RULES = [
+    # Header followed by actual key material (a bare header string in code is not a key).
+    ("private-key", rb"-----BEGIN (?:[A-Z0-9]+ )*PRIVATE KEY(?: BLOCK)?-----"
+                    rb"(?:\\[rn]|\s){0,8}(?:[A-Za-z0-9-]+: [^\r\n]*(?:\\[rn]|\s){1,4}){0,4}[A-Za-z0-9+/]{40}"),
+    ("github-token", rb"\b(?:gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{22,})"),
+    ("aws-access-key", rb"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
+    ("google-api-key", rb"\bAIza[0-9A-Za-z_\-]{35}\b"),
+    ("slack-token", rb"\bxox[baprs]-[0-9A-Za-z-]{10,}"),
+    ("openai-style-key", rb"(?<![A-Za-z0-9])sk-(?:proj-|ant-)?[A-Za-z0-9_\-]{24,}"),
+    ("stripe-live-key", rb"\b[rs]k_live_[0-9A-Za-z]{16,}"),
+    ("jwt", rb"\beyJ[A-Za-z0-9_\-]{10,}\.eyJ[A-Za-z0-9_\-]{10,}\.[A-Za-z0-9_\-]{10,}"),
+    ("url-credentials", rb"[a-z][a-z0-9+.\-]*://[^/\s:@'\"]{1,64}:[^/\s@'\"]{3,128}@[A-Za-z0-9.\-]+"),
+    ("android-signing-password",
+     rb"(?i)(?:storePassword|keyPassword|signing\.(?:store|key)\.password)\s*[=:]\s*[\"']?[^\s\"'$({]{4,}"),
+]
+_SECRET_RX = [(n, re.compile(p)) for n, p in _SECRET_RULES]
+
+_GENERIC_RX = re.compile(
+    rb"(?i)\b(?:api[_-]?key|secret|access[_-]?token|auth[_-]?token|bearer|password|passwd)\b"
+    rb"[\"']?\s*[:=]\s*[\"']?([A-Za-z0-9_\-+/=]{20,})")
+_PLACEHOLDER_HOST = re.compile(rb"(?i)@(?:[a-z0-9-]+\.)*(?:example(?:\.(?:com|org|net|test))?|[a-z0-9-]+\.(?:test|invalid|example))(?![A-Za-z0-9.\-])")
+_PLACEHOLDER = re.compile(rb"(?i)x{6,}|change[_-]?me|your[_-]|example|placeholder|redacted|<|\$\{|dummy|fake|test")
+
+# Decimal coordinate pair (lat, lon) with >=4 decimals: a fix precise to ~10 m.
+_COORD_RX = re.compile(rb"(?<![\d.])-?\d{1,2}\.\d{4,}\s*[,; ]\s*-?\d{1,3}\.\d{4,}(?![\d.])")
+_TRACE_MARK = re.compile(rb"(?i)<trkpt|<rtept|\"coordinates\"\s*:\s*\[\s*\[|LineString|\blatitude\b|\"lat\"\s*:")
+_USER_PATH = re.compile(rb"(?i)[a-z]:\\users\\[^\\\s\"']+|/home/[a-z0-9_.-]+/|/Users/[A-Za-z0-9_.-]+/")
+
+BINARY_OK_EXT = {
+    ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".bmp", ".svgz", ".ttf", ".otf",
+    ".woff", ".woff2", ".jar", ".uasset", ".umap", ".wav", ".ogg", ".mp3", ".pdf",
+}
+
+TRACE_BLOCK = 40
+TRACE_WARN = 5
+
+
+@dataclass
+class Finding:
+    path: str
+    rule: str
+    severity: str
+    line: int | None = None
+    source: str = "builtin"
+
+    def as_dict(self):
+        d = asdict(self)
+        if d["line"] is None:
+            d.pop("line")
+        return d
+
+
+def _line_of(data: bytes, pos: int) -> int:
+    return data.count(b"\n", 0, pos) + 1
+
+
+def scan_bytes(rel: str, data: bytes, truncated: bool) -> tuple[list[Finding], bool]:
+    """Return findings and whether the content looks binary."""
+    findings: list[Finding] = []
+    is_binary = b"\x00" in data[:8192]
+    for name, rx in _SECRET_RX:
+        for m in rx.finditer(data):
+            if name == "url-credentials" and _PLACEHOLDER_HOST.search(m.group(0)):
+                continue   # e.g. https://user:pass@example.test in tests of credential rejection
+            findings.append(Finding(rel, name, BLOCK, _line_of(data, m.start())))
+            break
+    for m in _GENERIC_RX.finditer(data):
+        if not _PLACEHOLDER.search(m.group(0)):
+            findings.append(Finding(rel, "generic-credential-assignment", WARN, _line_of(data, m.start())))
+            break
+    if not is_binary:
+        n = len(_COORD_RX.findall(data))
+        marked = bool(_TRACE_MARK.search(data))
+        if n >= TRACE_BLOCK or (marked and n >= TRACE_BLOCK // 2):
+            findings.append(Finding(rel, f"location-data({n} coordinate pairs)", BLOCK))
+        elif n >= TRACE_WARN:
+            findings.append(Finding(rel, f"location-data({n} coordinate pairs)", WARN))
+        m = _USER_PATH.search(data)
+        if m:
+            findings.append(Finding(rel, "personal-filesystem-path", WARN, _line_of(data, m.start())))
+    else:
+        ext = os.path.splitext(rel)[1].lower()
+        if ext not in BINARY_OK_EXT:
+            findings.append(Finding(rel, "unrecognised-binary", WARN))
+    if truncated:
+        findings.append(Finding(rel, "partially-scanned(large)", WARN))
+    return findings, is_binary
+
+
+GITLEAKS_CONFIG = """# Generated by GitHub Publisher. Default rules, no allowlist extensions.
+title = "github-publisher"
+[extend]
+useDefault = true
+"""
+
+
+def run_gitleaks(gitleaks: str, tree: str, work_dir: str, max_mb: int) -> list[Finding]:
+    """Run gitleaks over the staged tree. Raises ProcError if gitleaks cannot run."""
+    cfg = os.path.join(work_dir, "gitleaks-config.toml")
+    with open(cfg, "w", encoding="utf-8") as f:
+        f.write(GITLEAKS_CONFIG)
+    empty_ignore = tempfile.mkdtemp(prefix="ghpub-gli-", dir=work_dir)
+    raw_report = os.path.join(work_dir, "gitleaks-raw.json")
+    env = {k: v for k, v in os.environ.items() if k in ("PATH", "SYSTEMROOT", "TEMP", "TMP", "HOME", "USERPROFILE")}
+    try:
+        run([gitleaks, "dir", tree, "--config", cfg, "--gitleaks-ignore-path", empty_ignore,
+             "--ignore-gitleaks-allow", "--no-banner", "--no-color", "--redact=100",
+             "--log-level", "error", "--report-format", "json", "--report-path", raw_report,
+             "--exit-code", "0", "--max-target-megabytes", str(max_mb), "--max-decode-depth", "3"],
+            what="gitleaks", timeout=900, env=env)
+        with open(raw_report, encoding="utf-8") as f:
+            items = json.load(f) or []
+    finally:
+        for p in (raw_report,):
+            try:
+                os.remove(p)
+            except OSError:
+                pass
+        try:
+            os.rmdir(empty_ignore)
+        except OSError:
+            pass
+    out = []
+    root = os.path.abspath(tree)
+    for it in items:
+        fp = os.path.abspath(it.get("File", ""))
+        rel = os.path.relpath(fp, root).replace("\\", "/") if fp.startswith(root) else "?"
+        out.append(Finding(rel, "gitleaks:" + str(it.get("RuleID", "unknown"))[:60], BLOCK,
+                           it.get("StartLine"), "gitleaks"))
+    return out
+
+
+def gitleaks_version(gitleaks: str | None) -> str | None:
+    if not gitleaks:
+        return None
+    try:
+        r = run([gitleaks, "version"], what="gitleaks version", timeout=20, env=dict(os.environ))
+        return r.out.decode().strip()[:40]
+    except ProcError:
+        return None

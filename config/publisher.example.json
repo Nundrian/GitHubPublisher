@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "listen_host": "127.0.0.1",
+  "listen_port": 8766,
+  "data_dir": "%LOCALAPPDATA%\\GitHubPublisher",
+  "github": {
+    "owner": "Nundrian",
+    "gh_path": "C:\\Program Files\\GitHub CLI\\gh.exe",
+    "git_path": "C:\\Program Files\\Git\\cmd\\git.exe",
+    "commit_name": "Nundrian",
+    "commit_email": "Nundrian@users.noreply.github.com"
+  },
+  "scanner": {
+    "gitleaks_path": "%LOCALAPPDATA%\\GitHubPublisher\\bin\\gitleaks.exe",
+    "require_gitleaks": true,
+    "max_file_bytes": 26214400,
+    "max_total_bytes": 943718400,
+    "max_files": 30000,
+    "scan_bytes": 8388608
+  },
+  "protected_repos": [
+    "safe-route-regional-data"
+  ],
+  "projects": {
+    "uehl": {
+      "source": "C:\\Unreal connector",
+      "repo": "Unreal-Headless-Connector",
+      "description": "Headless Unreal Engine service and OpenAPI tooling for Open WebUI",
+      "branch": "main",
+      "use_gitignore": true,
+      "exclude": [
+        "/work/",
+        "/state/",
+        "/backups/",
+        "/evidence/continuation/backups/"
+      ],
+      "include": [],
+      "required_paths": [
+        "src/uehl",
+        "tests",
+        "pyproject.toml",
+        "uv.lock",
+        "README.md",
+        "settings.example.json"
+      ],
+      "executable": [
+        "*.sh"
+      ],
+      "reviewed": [],
+      "_dry_run_2026_11_15": "448 files / 3.3 MiB staged. gitleaks flags 10 generic-api-key hits in 4 hash-manifest files under evidence/ (SHA-256 values, one is the hash of state/api-token.txt): review them, then exclude or add reviewed entries (see dryrun-results/uehl-review-candidates.json)."
+    },
+    "saferoute": {
+      "source": "C:\\Codex\\MaltaSafeRoute",
+      "repo": "SafeRoute",
+      "description": "SafeRoute Android journey planning and safety-aware navigation app",
+      "branch": "main",
+      "use_gitignore": true,
+      "exclude": [
+        "/data/",
+        "/artifacts/",
+        "/tools/graphhopper/",
+        "/third_party/offline-maps-014/",
+        "/NUL"
+      ],
+      "include": [
+        "gradle/wrapper/gradle-wrapper.jar"
+      ],
+      "required_paths": [
+        "app/src/main",
+        "app/build.gradle.kts",
+        "build.gradle.kts",
+        "settings.gradle.kts",
+        "gradlew",
+        "gradlew.bat",
+        "gradle/wrapper/gradle-wrapper.properties",
+        "gradle/wrapper/gradle-wrapper.jar"
+      ],
+      "executable": [
+        "gradlew",
+        "*.sh"
+      ],
+      "reviewed": [],
+      "_dry_run_2026_11_15": "972 files / 68.4 MiB staged. 15 files blocked for coordinate data (test fixtures, coverage masks, docs/evidence route outputs) and 17 gitleaks generic-api-key hits (key IDs/hashes). 42 files tracked by the local git repo are excluded by policy: offline-pack .rd5/.mbtiles/.pbf assets under app/src/*/assets and tests/, test *-private.pem keys under tests/. Decide per file; see dryrun-results/."
+    }
+  }
+}
